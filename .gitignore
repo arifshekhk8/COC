@@ -1,0 +1,33 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+*.sqlite3
+
+# Environment
+.env
+.env.dev
+.env.local
+
+# Node
+node_modules/
+.next/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Media / Static
+Backend/media/
+Backend/staticfiles/
