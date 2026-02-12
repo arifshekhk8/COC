@@ -49,6 +49,20 @@ export default function ChannelDetailPage() {
   // Merge history + WS messages
   const allMessages = mergeMessages(history, wsMessages);
 
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    if (allMessages.length > 0 && history.length > 0 && virtuosoRef.current) {
+      // Use setTimeout to ensure DOM is ready
+      setTimeout(() => {
+        virtuosoRef.current?.scrollToIndex({
+          index: allMessages.length - 1,
+          align: "end",
+          behavior: "auto",
+        });
+      }, 100);
+    }
+  }, [history.length]);
+
   // Auto-scroll when new messages arrive
   useEffect(() => {
     if (allMessages.length > 0) {
