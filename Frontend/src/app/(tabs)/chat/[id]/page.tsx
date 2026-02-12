@@ -98,7 +98,6 @@ export default function ChannelDetailPage() {
         <Virtuoso
           ref={virtuosoRef}
           data={allMessages}
-          initialTopMostItemIndex={allMessages.length > 0 ? allMessages.length - 1 : 0}
           alignToBottom
           followOutput="smooth"
           itemContent={(_, msg) => (
@@ -191,5 +190,8 @@ function mergeMessages(
       sender_username: m.sender.username,
       created_at: m.created_at,
     }));
-  return [...base, ...wsNew];
+  // Sort by created_at timestamp (oldest first)
+  return [...base, ...wsNew].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 }
