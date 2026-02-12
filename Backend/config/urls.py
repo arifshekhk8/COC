@@ -19,6 +19,7 @@ urlpatterns = [
     path("api/auth/", include("apps.users.urls")),
     path("api/chat/", include("apps.chat.urls")),
     path("api/push/", include("apps.push.urls")),
+    path("api/coc/", include("apps.clan.urls")),
 ]
 
 if settings.DEBUG:

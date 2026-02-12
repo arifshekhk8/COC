@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
   Newspaper,
-  Activity,
+  Shield,
   Swords,
   User,
 } from "lucide-react";
@@ -15,7 +15,7 @@ import { AuthGuard } from "@/components/auth-guard";
 const tabs = [
   { name: "Chat", href: "/chat", icon: MessageSquare },
   { name: "Feed", href: "/feed", icon: Newspaper },
-  { name: "Status", href: "/status", icon: Activity },
+  { name: "Clan", href: "/clan", icon: Shield },
   { name: "War", href: "/war", icon: Swords },
   { name: "Profile", href: "/profile", icon: User },
 ] as const;
