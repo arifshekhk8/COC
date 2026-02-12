@@ -106,11 +106,14 @@ curl http://localhost:8000/api/health/
 # → {"ok": true}
 ```
 
-### 2. Register & Login
+### 2. Sign In with Google
 
-- Open http://localhost:3000/register
-- Create an account (username + password, min 8 chars)
+- Open http://localhost:3000/login
+- Click the **"Sign in with Google"** button
+- Authenticate with your Google account
 - You'll be auto-redirected to the chat view
+
+> **Note:** There is no username/password registration. All auth goes through Google.
 
 ### 3. Create a Channel & Send Messages
 
@@ -138,8 +141,7 @@ curl http://localhost:8000/api/health/
 | Method | Endpoint                           | Auth | Description                      |
 | ------ | ---------------------------------- | ---- | -------------------------------- |
 | GET    | `/api/health/`                     | —    | Health check                     |
-| POST   | `/api/auth/register/`              | —    | Register user                    |
-| POST   | `/api/auth/login/`                 | —    | Obtain JWT pair                  |
+| POST   | `/api/auth/google/`                | —    | Google OAuth login (ID token)    |
 | POST   | `/api/auth/refresh/`               | —    | Refresh access token             |
 | GET    | `/api/auth/me/`                    | ✅   | Current user info                |
 | GET    | `/api/chat/channels/`              | ✅   | List channels                    |
@@ -176,7 +178,7 @@ Backend/
 │   ├── asgi.py             # ASGI + Channels routing
 │   └── wsgi.py
 ├── apps/
-│   ├── users/              # Auth: register, login, me
+│   ├── users/              # Google OAuth login, JWT issuing, me endpoint
 │   ├── chat/               # Channels, messages, WS consumer
 │   ├── clan/               # Placeholder: heroes, troops, defenses
 │   └── push/               # Push subscription model + endpoints
@@ -194,8 +196,7 @@ Frontend/
 │   │   ├── layout.tsx        # Root layout + providers
 │   │   ├── manifest.ts       # PWA manifest
 │   │   ├── page.tsx          # Root redirect
-│   │   ├── login/page.tsx
-│   │   ├── register/page.tsx
+│   │   ├── login/page.tsx    # Google Sign-In
 │   │   └── (tabs)/
 │   │       ├── layout.tsx    # Bottom tab navigation
 │   │       ├── chat/
@@ -230,9 +231,33 @@ Frontend/
 
 ## Security Notes
 
+- **Authentication**: Google-only OAuth via Google Identity Services (GIS). The backend verifies Google ID tokens server-side using `google-auth`.
 - JWT tokens are stored in `localStorage` (via Zustand persist). For production, consider moving to `httpOnly` cookies with a BFF pattern.
 - The Axios interceptor handles automatic token refresh on 401 responses.
 - WebSocket auth uses query string token — acceptable for dev; consider ticket-based auth for production.
+- Password login is fully disabled; all users have `set_unusable_password()`.
+
+---
+
+## Google OAuth Setup
+
+The app uses **Google Identity Services** for authentication.
+
+### Where the Client ID lives
+
+| Location                          | Variable                        |
+| --------------------------------- | ------------------------------- |
+| `Backend/.env`                    | `GOOGLE_CLIENT_ID`              |
+| `Backend/config/settings/base.py` | Falls back to hardcoded default |
+| `Frontend/.env.local`             | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`  |
+
+### Google Cloud Console setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials
+2. Create an **OAuth 2.0 Client ID** (Web application)
+3. Add **Authorized JavaScript origins**: `http://localhost:3000`
+4. Copy the Client ID into the env vars above
+5. No client secret is needed (GIS uses ID tokens, not authorization code flow)
 
 ---
 
@@ -240,4 +265,4 @@ Frontend/
 
 **Frontend**: Next.js 15, React 19, TypeScript, TailwindCSS, shadcn/ui, Framer Motion, TanStack Query, Zustand, Axios, react-virtuoso, emoji-mart, react-dropzone, lucide-react
 
-**Backend**: Django 5, DRF, SimpleJWT, Django Channels, Daphne (ASGI), channels_redis, django-cors-headers, SQLite (dev default)
+**Backend**: Django 5, DRF, SimpleJWT, Django Channels, Daphne (ASGI), channels_redis, django-cors-headers, google-auth, SQLite (dev default)
