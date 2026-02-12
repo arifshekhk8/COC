@@ -474,14 +474,14 @@ export default function MemberProfilePage() {
                   player.achievements
                     .filter((a) => a.village === "home")
                     .sort((a, b) => b.stars - a.stars)
-                    .map((a) => {
+                    .map((a, idx) => {
                       const pct = Math.min(
                         (a.value / Math.max(a.target, 1)) * 100,
                         100
                       );
                       return (
                         <Card
-                          key={a.name}
+                          key={`${a.name}-${idx}`}
                           className="border-border/40 overflow-hidden"
                         >
                           <CardContent className="p-3 space-y-1.5">
