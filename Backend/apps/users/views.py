@@ -1,159 +1,89 @@
-import logging
-
 from django.conf import settings
 from django.contrib.auth.models import User
 from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token as google_id_token
-from rest_framework import permissions, status
+from google.oauth2 import id_token
+from rest_framework import generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import UserProfile
-from .serializers import GoogleLoginSerializer, UserSerializer
-
-logger = logging.getLogger(__name__)
-
-GOOGLE_CLIENT_ID = getattr(settings, "GOOGLE_CLIENT_ID", "")
+from .serializers import UserSerializer
 
 
-def _user_payload(user: User) -> dict:
-    """Build the user dict for the login response."""
-    profile = getattr(user, "profile", None)
-    return {
-        "id": user.id,
-        "email": user.email,
-        "full_name": profile.full_name if profile else "",
-        "avatar_url": (profile.avatar_url if profile and profile.avatar_url else None),
-        "date_joined": user.date_joined.isoformat(),
-    }
-
-
-class GoogleLoginView(APIView):
-    """Verify Google ID token → create/lookup user → issue JWT."""
-
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        ser = GoogleLoginSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        raw_token = ser.validated_data["id_token"]
-
-        # ── 1. Verify Google ID token ──────────────────────────────
-        try:
-            idinfo = google_id_token.verify_oauth2_token(
-                raw_token,
-                google_requests.Request(),
-                GOOGLE_CLIENT_ID,
-            )
-        except ValueError as exc:
-            logger.warning("Google token verification failed: %s", exc)
-            return Response(
-                {"detail": "Invalid Google token."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # ── 2. Validate claims ─────────────────────────────────────
-        iss = idinfo.get("iss", "")
-        if iss not in ("accounts.google.com", "https://accounts.google.com"):
-            return Response(
-                {"detail": "Invalid token issuer."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        if not idinfo.get("email_verified", False):
-            return Response(
-                {"detail": "Google email not verified."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # ── 3. Extract identity ────────────────────────────────────
-        sub = idinfo["sub"]
-        email = idinfo["email"]
-        name = idinfo.get("name", "") or f"{idinfo.get('given_name', '')} {idinfo.get('family_name', '')}".strip()
-        picture = idinfo.get("picture", "") or ""
-
-        # DEBUG: log decoded token keys to confirm `picture` is present
-        logger.info("Google idinfo keys: %s", list(idinfo.keys()))
-        logger.info("Google picture=%s, name=%s", picture, name)
-
-        # ── 4. Create / lookup user ────────────────────────────────
-        # Case A: profile with this google_sub already exists
-        try:
-            profile = UserProfile.objects.select_related("user").get(
-                google_sub=sub
-            )
-            user = profile.user
-            # Update name / avatar on every login
-            changed = False
-            if name and profile.full_name != name:
-                profile.full_name = name
-                changed = True
-            if picture and profile.avatar_url != picture:
-                profile.avatar_url = picture
-                changed = True
-            if changed:
-                profile.save(update_fields=["full_name", "avatar_url"])
-        except UserProfile.DoesNotExist:
-            # Case B: user with same email exists, no google_sub yet
-            try:
-                user = User.objects.get(email=email)
-                # Check if this user already has a DIFFERENT google_sub
-                if hasattr(user, "profile"):
-                    return Response(
-                        {
-                            "detail": (
-                                "This email is already linked to a different "
-                                "Google account."
-                            )
-                        },
-                        status=status.HTTP_409_CONFLICT,
-                    )
-                # Attach google_sub to existing user
-                user.set_unusable_password()
-                user.save(update_fields=["password"])
-                UserProfile.objects.create(
-                    user=user,
-                    google_sub=sub,
-                    full_name=name,
-                    avatar_url=picture,
-                )
-            except User.DoesNotExist:
-                # Case C: brand-new user
-                username = email.split("@")[0]
-                # Ensure unique username
-                base = username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base}{counter}"
-                    counter += 1
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                )
-                user.set_unusable_password()
-                user.save(update_fields=["password"])
-                UserProfile.objects.create(
-                    user=user,
-                    google_sub=sub,
-                    full_name=name,
-                    avatar_url=picture,
-                )
-
-        # ── 5. Issue JWT via SimpleJWT ─────────────────────────────
-        refresh = RefreshToken.for_user(user)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def google_auth(request):
+    """
+    Accept a Google ID token (``credential``), verify it,
+    get-or-create a Django user, and return JWT tokens + profile.
+    """
+    credential = request.data.get("credential")
+    if not credential:
         return Response(
-            {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": _user_payload(user),
-            },
-            status=status.HTTP_200_OK,
+            {"error": "Missing credential"}, status=status.HTTP_400_BAD_REQUEST
         )
 
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            credential,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+        )
+    except ValueError:
+        return Response(
+            {"error": "Invalid Google token"}, status=status.HTTP_401_UNAUTHORIZED
+        )
 
-class MeView(APIView):
+    email = idinfo.get("email")
+    if not email:
+        return Response(
+            {"error": "Email not available from Google"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Get-or-create user by email
+    user, created = User.objects.get_or_create(
+        email=email,
+        defaults={
+            "username": email,
+            "first_name": idinfo.get("given_name", ""),
+            "last_name": idinfo.get("family_name", ""),
+        },
+    )
+
+    if not created:
+        user.first_name = idinfo.get("given_name", "") or user.first_name
+        user.last_name = idinfo.get("family_name", "") or user.last_name
+        user.save(update_fields=["first_name", "last_name"])
+
+    # Update profile with Google-specific fields
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile.google_sub = idinfo.get("sub", "")
+    profile.avatar_url = idinfo.get("picture", "")
+    profile.save(update_fields=["google_sub", "avatar_url"])
+
+    # Issue JWT
+    refresh = RefreshToken.for_user(user)
+
+    return Response(
+        {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "name": user.get_full_name() or user.username,
+                "picture": profile.avatar_url,
+            },
+        }
+    )
+
+
+class MeView(generics.RetrieveAPIView):
+    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get(self, request):
-        return Response(_user_payload(request.user))
+    def get_object(self):
+        return self.request.user

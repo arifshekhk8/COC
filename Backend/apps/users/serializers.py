@@ -1,13 +1,18 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 
-class GoogleLoginSerializer(serializers.Serializer):
-    id_token = serializers.CharField()
+class UserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    picture = serializers.SerializerMethodField()
 
+    class Meta:
+        model = User
+        fields = ["id", "email", "name", "picture", "date_joined"]
 
-class UserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    email = serializers.EmailField()
-    full_name = serializers.CharField()
-    avatar_url = serializers.URLField(allow_blank=True)
-    date_joined = serializers.DateTimeField()
+    def get_name(self, obj: User) -> str:
+        return obj.get_full_name() or obj.username
+
+    def get_picture(self, obj: User) -> str:
+        profile = getattr(obj, "profile", None)
+        return profile.avatar_url if profile else ""

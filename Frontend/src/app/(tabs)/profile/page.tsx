@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 export default function ProfilePage() {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
-  const storedUser = useAuthStore((s) => s.user);
+  const storeUser = useAuthStore((s) => s.user);
   const { isSubscribed, isLoading: pushLoading, error: pushError, subscribe } =
     usePushSubscription();
 
@@ -26,9 +26,7 @@ export default function ProfilePage() {
     },
   });
 
-  const displayName = user?.full_name || storedUser?.full_name || "User";
-  const displayEmail = user?.email || storedUser?.email || "";
-  const avatarUrl = user?.avatar_url || storedUser?.avatar_url || "";
+  const displayUser = user ?? storeUser;
 
   const handleLogout = () => {
     logout();
@@ -46,18 +44,26 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="flex items-center gap-4 p-4">
           <Avatar className="h-14 w-14">
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+            {displayUser?.picture && (
+              <AvatarImage
+                src={displayUser.picture}
+                alt={displayUser.name}
+                referrerPolicy="no-referrer"
+              />
+            )}
             <AvatarFallback className="text-lg">
-              {displayName?.[0]?.toUpperCase() ?? "?"}
+              {displayUser?.name?.[0]?.toUpperCase() ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-lg">{displayName}</p>
-            <p className="text-sm text-muted-foreground">{displayEmail || "No email"}</p>
+            <p className="font-semibold text-lg">{displayUser?.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {displayUser?.email || "No email"}
+            </p>
             <p className="text-xs text-muted-foreground">
               Joined{" "}
-              {user?.date_joined
-                ? new Date(user.date_joined).toLocaleDateString()
+              {displayUser?.date_joined
+                ? new Date(displayUser.date_joined).toLocaleDateString()
                 : "—"}
             </p>
           </div>

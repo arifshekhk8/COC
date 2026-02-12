@@ -154,3 +154,8 @@ GOOGLE_CLIENT_ID = os.getenv(
     "GOOGLE_CLIENT_ID",
     "527161504748-g7cunsdg6m0i7ebncershnftj5l66tqa.apps.googleusercontent.com",
 )
+
+# ── Clash of Clans API ────────────────────────────────────────────────
+COC_DEV_API_TOKEN = os.getenv("COC_DEV_API_TOKEN", "")
+COC_BASE_URL = os.getenv("COC_BASE_URL", "https://cocproxy.royaleapi.dev/v1")
+COC_DEFAULT_CLAN_TAG = os.getenv("COC_DEFAULT_CLAN_TAG", "")
