@@ -1,13 +1,20 @@
 export interface User {
   id: number;
-  username: string;
   email: string;
+  name: string;
+  picture: string;
   date_joined: string;
 }
 
 export interface TokenPair {
   access: string;
   refresh: string;
+}
+
+export interface GoogleAuthResponse {
+  access: string;
+  refresh: string;
+  user: User;
 }
 
 export interface ChatChannel {

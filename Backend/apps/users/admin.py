@@ -1,3 +1,9 @@
-from django.contrib import admin  # noqa: F401
+from django.contrib import admin
 
-# Built-in User model is already registered via django.contrib.auth.
+from .models import UserProfile
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ["user", "google_sub", "avatar_url"]
+    search_fields = ["user__email", "google_sub"]

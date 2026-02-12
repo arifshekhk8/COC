@@ -7,13 +7,14 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import type { User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, LogOut, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
+  const storeUser = useAuthStore((s) => s.user);
   const { isSubscribed, isLoading: pushLoading, error: pushError, subscribe } =
     usePushSubscription();
 
@@ -24,6 +25,8 @@ export default function ProfilePage() {
       return data;
     },
   });
+
+  const displayUser = user ?? storeUser;
 
   const handleLogout = () => {
     logout();
@@ -41,17 +44,26 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="flex items-center gap-4 p-4">
           <Avatar className="h-14 w-14">
+            {displayUser?.picture && (
+              <AvatarImage
+                src={displayUser.picture}
+                alt={displayUser.name}
+                referrerPolicy="no-referrer"
+              />
+            )}
             <AvatarFallback className="text-lg">
-              {user?.username?.[0]?.toUpperCase() ?? "?"}
+              {displayUser?.name?.[0]?.toUpperCase() ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-lg">{user?.username}</p>
-            <p className="text-sm text-muted-foreground">{user?.email || "No email"}</p>
+            <p className="font-semibold text-lg">{displayUser?.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {displayUser?.email || "No email"}
+            </p>
             <p className="text-xs text-muted-foreground">
               Joined{" "}
-              {user?.date_joined
-                ? new Date(user.date_joined).toLocaleDateString()
+              {displayUser?.date_joined
+                ? new Date(displayUser.date_joined).toLocaleDateString()
                 : "—"}
             </p>
           </div>

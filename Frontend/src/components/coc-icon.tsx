@@ -15,8 +15,8 @@ interface CocIconProps {
 }
 
 /**
- * Renders a CoC unit icon with fallback.
- * Shows the icon image if available, otherwise an initial-based badge.
+ * Renders a CoC unit icon loaded from the coc.guide CDN.
+ * Falls back to a colored initial-based badge on load failure.
  */
 export function CocIcon({ category, name, size = 40, className = "" }: CocIconProps) {
   const [failed, setFailed] = useState(false);
@@ -35,6 +35,7 @@ export function CocIcon({ category, name, size = 40, className = "" }: CocIconPr
       className={`object-contain ${className}`}
       onError={() => setFailed(true)}
       loading="lazy"
+      referrerPolicy="no-referrer"
     />
   );
 }
@@ -74,6 +75,7 @@ export function TownHallIcon({ level, size = 32, className = "" }: TownHallIconP
       className={`object-contain ${className}`}
       onError={() => setFailed(true)}
       loading="lazy"
+      referrerPolicy="no-referrer"
     />
   );
 }

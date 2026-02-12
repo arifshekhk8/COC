@@ -149,6 +149,9 @@ else:
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
 
+# ── Google OAuth ──────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+
 # ── Clash of Clans API ────────────────────────────────────────────────
 COC_DEV_API_TOKEN = os.getenv("COC_DEV_API_TOKEN", "")
 COC_BASE_URL = os.getenv("COC_BASE_URL", "https://cocproxy.royaleapi.dev/v1")
