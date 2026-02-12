@@ -7,13 +7,14 @@ import { usePushSubscription } from "@/hooks/use-push-subscription";
 import type { User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, LogOut, User as UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
   const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
+  const storedUser = useAuthStore((s) => s.user);
   const { isSubscribed, isLoading: pushLoading, error: pushError, subscribe } =
     usePushSubscription();
 
@@ -24,6 +25,10 @@ export default function ProfilePage() {
       return data;
     },
   });
+
+  const displayName = user?.full_name || storedUser?.full_name || "User";
+  const displayEmail = user?.email || storedUser?.email || "";
+  const avatarUrl = user?.avatar_url || storedUser?.avatar_url || "";
 
   const handleLogout = () => {
     logout();
@@ -41,13 +46,14 @@ export default function ProfilePage() {
       <Card>
         <CardContent className="flex items-center gap-4 p-4">
           <Avatar className="h-14 w-14">
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
             <AvatarFallback className="text-lg">
-              {user?.username?.[0]?.toUpperCase() ?? "?"}
+              {displayName?.[0]?.toUpperCase() ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-semibold text-lg">{user?.username}</p>
-            <p className="text-sm text-muted-foreground">{user?.email || "No email"}</p>
+            <p className="font-semibold text-lg">{displayName}</p>
+            <p className="text-sm text-muted-foreground">{displayEmail || "No email"}</p>
             <p className="text-xs text-muted-foreground">
               Joined{" "}
               {user?.date_joined

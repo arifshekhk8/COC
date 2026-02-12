@@ -148,3 +148,9 @@ else:
 # ── VAPID (Web Push) ─────────────────────────────────────────────────
 VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
+
+# ── Google OAuth ──────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID = os.getenv(
+    "GOOGLE_CLIENT_ID",
+    "527161504748-g7cunsdg6m0i7ebncershnftj5l66tqa.apps.googleusercontent.com",
+)
