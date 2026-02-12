@@ -24,7 +24,7 @@ def _user_payload(user: User) -> dict:
         "id": user.id,
         "email": user.email,
         "full_name": profile.full_name if profile else "",
-        "avatar_url": profile.avatar_url if profile else "",
+        "avatar_url": (profile.avatar_url if profile and profile.avatar_url else None),
         "date_joined": user.date_joined.isoformat(),
     }
 
@@ -70,8 +70,12 @@ class GoogleLoginView(APIView):
         # ── 3. Extract identity ────────────────────────────────────
         sub = idinfo["sub"]
         email = idinfo["email"]
-        name = idinfo.get("name", "")
-        picture = idinfo.get("picture", "")
+        name = idinfo.get("name", "") or f"{idinfo.get('given_name', '')} {idinfo.get('family_name', '')}".strip()
+        picture = idinfo.get("picture", "") or ""
+
+        # DEBUG: log decoded token keys to confirm `picture` is present
+        logger.info("Google idinfo keys: %s", list(idinfo.keys()))
+        logger.info("Google picture=%s, name=%s", picture, name)
 
         # ── 4. Create / lookup user ────────────────────────────────
         # Case A: profile with this google_sub already exists
